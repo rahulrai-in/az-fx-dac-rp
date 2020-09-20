@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: az-fx-dac-rp
+  labels:
+    name: az-fx-dac-rp
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 443
+      targetPort: 8080
+  selector:
+    name: az-fx-dac-rp
+    type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: az-fx-dac-rp
+  labels:
+    name: az-fx-dac-rp
+spec:
+  selector:
+    matchLabels:
+      name: az-fx-dac-rp
+  replicas: 1
+  template:
+    metadata:
+      name: az-fx-dac-rp 
+      labels:
+        name: az-fx-dac-rp
+    spec:
+      containers:
+        - name: az-fx-dac-rp
+          image: rahulrai/az-fx-k8s-dac:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              memory: 50Mi
+              cpu: 300m
+            requests:
+              memory: 50Mi
+              cpu: 300m
+          volumeMounts:
+            - name: dac-certs
+              mountPath: /etc/az-fx-proxy/certs
+              readOnly: true
+          securityContext:
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: dac-certs
+          secret:
+            secretName: dac-rp-cert
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: compliance
+webhooks:
+  - name: compliance.custom.azure.com
+    clientConfig:
+      service:
+        name: az-fx-dac-rp
+        namespace: default
+        path: "/"
+        port: 443
+      caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURMekNDQWhlZ0F3SUJBZ0lVQnVzNzJXcVNWWCs5VlB6ei8vWXM0a0k1dTR3d0RRWUpLb1pJaHZjTkFRRUwKQlFBd0p6RWxNQ01HQTFVRUF3d2NRV1J0YVhOemFXOXVJRU52Ym5SeWIyeHNaWElnUkdWdGJ5QkRRVEFlRncweQpNREE1TVRjd09ESTFNemhhRncweU1ERXdNVGN3T0RJMU16aGFNQ2N4SlRBakJnTlZCQU1NSEVGa2JXbHpjMmx2CmJpQkRiMjUwY205c2JHVnlJRVJsYlc4Z1EwRXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUsKQW9JQkFRRGl1cEdDRzZhNUpZQkpyMXN2YVVNcWx3OVY2eHEzVE9OSDhaR3ovV28wNVYvVVBXK1pjNWVUSGdpVQpHZGlZSDlTa2dTWldZa28vdG9xMmVtUGUxSVhYVWpFNWFDVTBoQWxnMWJuZHJpdXRpaUtzSUFpQXBpRmlicWNZCnNWNEJrVFBXWVk3NGx4TDVqQWY4WHVwTndtcEkxZTBMRWY1UE1VSWdKUWFCYzV3MmlPZ2lOL2l1bEh4eCtNcVgKYVJpWHg2aFlSVjE3Q3lJK3Erd2MxQVdwbjYwc1FoUUVhRXRMaTM1T3l4Z25haVdseUtEZ3dKNVFncWo4SzVZLwptOEFhRENVeUpjMFhLTjR5TTAvM0pLWjFJUFFHSVFnbi9QNEdkSXJ5YTA4QmY5cmxzd29xR05PTk85b21qajFwCjFoOGd6a2t3aDNCS0h6dHZBczB3ei8rdHF1aGJBZ01CQUFHalV6QlJNQjBHQTFVZERnUVdCQlNUSExvVVp6NFMKRDNpY2twVm1NUDFaVmswZmVUQWZCZ05WSFNNRUdEQVdnQlNUSExvVVp6NFNEM2lja3BWbU1QMVpWazBmZVRBUApCZ05WSFJNQkFmOEVCVEFEQVFIL01BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQjA1bVJMQlFXNWFQS0RyaWE2CmhUWXBYSHZMS0svdC9JdG5FeTIrYmRqWHhxOWdaMmpENytmWi9jWnByemx3TDRrT2pPOVc3bkdCVXhVd3N5NzIKbElTUVZNYTZBRVM2eHdERnE5YjZMNG0vcnZ4TkhDQzh0ZjlPN0p1U0tNanUzd1RsZSsyL1hkcDhQTHIrZjg5YQpBQUdrUEQvdzZNQms3cmthZXphUjQ5T2lPWGRHZzRuQm94b0xxYi9MOXdkOC9OZytXWFVJNjlEYXQwSk5waDViCjdzVDBFVmVBbGZOOVMrNlNITGkyUUx6NGhkZy9XMy9xZGNjcmVNbjNDM0htbU9wUFJIa2hvbEgwOFdJY2hkOFMKbnZqaS81OXFQVm5MdGM2K2swRGlUcTlyTWJJRDc0cXVJSVJncEVDU0Z3Z2JWREZRVjVIUzd4b21TTlp3cXdnWgp6TXVnCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+    rules:
+      - apiGroups: ["apps"]
+        apiVersions: ["*"]
+        operations: ["CREATE","UPDATE"]
+        resources: ["deployments"]
+        scope: "Namespaced"
+    timeoutSeconds: 30
+    failurePolicy: Fail
+    sideEffects: None
+    admissionReviewVersions: ["v1", "v1beta1"]
