@@ -18,7 +18,7 @@ type Config struct {
 var config = &Config{}
 
 func main() {
-	if err := envconfig.Process("DAC_PROXY", config); err != nil {
+	if err := envconfig.Process("DAC_PROXY_", config); err != nil {
 		log.Panic("Failed to load configuration", err)
 	}
 
