@@ -1,0 +1,7 @@
+.git
+.cache
+.dockerignore
+
+specifications
+ReadMe.md
+Dockerfile
